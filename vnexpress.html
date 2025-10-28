@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VnExpress Kinh Doanh - RSS Reader</title>
+  <style>
+    /* ===== RESET & GLOBAL ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "Inter", "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #eef2f3, #d9e4f5);
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: #222;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: white;
+      padding: 40px 30px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      margin-bottom: 35px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: "";
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 160px;
+      height: 160px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      opacity: 0.2;
+      border-radius: 50%;
+      z-index: 0;
+    }
+
+    .header h1 {
+      font-size: 2.8em;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header .subtitle {
+      color: #555;
+      font-size: 1.1em;
+      margin-top: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .last-update {
+      background: rgba(102, 126, 234, 0.1);
+      color: #444;
+      display: inline-block;
+      padding: 8px 20px;
+      border-radius: 50px;
+      margin-top: 15px;
+      font-size: 0.95em;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===== CONTROLS ===== */
+    .controls {
+      background: white;
+      padding: 20px 25px;
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 25px;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      transition: all 0.3s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .filter-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .filter-btn {
+      background: white;
+      border: 2px solid #667eea;
+      color: #667eea;
+      padding: 8px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .filter-btn.active,
+    .filter-btn:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    /* ===== LOADING ===== */
+    .loading {
+      text-align: center;
+      padding: 50px 0;
+      color: #555;
+    }
+
+    .spinner {
+      width: 45px;
+      height: 45px;
+      border: 4px solid rgba(102, 126, 234, 0.2);
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      margin: 0 auto 15px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ===== NEWS GRID ===== */
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 25px;
+    }
+
+    .news-item {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s;
+    }
+
+    .news-item:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .news-image {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      background: #f5f5f5;
+      transition: transform 0.5s ease;
+    }
+
+    .news-item:hover .news-image {
+      transform: scale(1.05);
+    }
+
+    .news-content {
+      padding: 18px 20px 22px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    .news-title {
+      font-size: 1.25em;
+      color: #333;
+      font-weight: 600;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .news-description {
+      color: #666;
+      font-size: 0.97em;
+      line-height: 1.6;
+      margin-bottom: auto;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .news-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+      font-size: 0.9em;
+      color: #999;
+    }
+
+    .error {
+      background: #ff6b6b;
+      color: white;
+      padding: 18px;
+      border-radius: 10px;
+      text-align: center;
+      margin-top: 25px;
+    }
+
+    @media (max-width: 768px) {
+      .header h1 { font-size: 2em; }
+      .controls { flex-direction: column; align-items: stretch; }
+      .filter-controls { justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📰 VnExpress Kinh Doanh</h1>
+      <p class="subtitle">Cập nhật tin tức tài chính & doanh nghiệp mới nhất</p>
+      <div class="last-update" id="lastUpdate">Đang tải...</div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="loadRSS()">🔄 Làm mới</button>
+      <div class="filter-controls">
+        <button class="filter-btn active" onclick="filterByDate('all')">Tất cả</button>
+        <button class="filter-btn" onclick="filterByDate('today')">Hôm nay</button>
+        <button class="filter-btn" onclick="filterByDate('yesterday')">Hôm qua</button>
+        <button class="filter-btn" onclick="filterByDate('week')">Tuần này</button>
+      </div>
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+      <div class="spinner"></div>
+      <p>Đang tải tin tức...</p>
+    </div>
+
+    <div id="error" class="error" style="display: none;"></div>
+
+    <div class="news-grid" id="newsContainer"></div>
+  </div>
+
+  <script>
+    let allNews = [];
+    let currentFilter = 'all';
+
+    async function loadRSS() {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      const newsContainer = document.getElementById('newsContainer');
+      
+      loading.style.display = 'block';
+      error.style.display = 'none';
+      newsContainer.innerHTML = '';
+
+      try {
+        const rssUrl = 'https://vnexpress.net/rss/kinh-doanh.rss';
+        const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+        
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.status !== 'ok') throw new Error('Không thể tải RSS feed');
+
+        allNews = data.items.map(item => ({
+          title: item.title,
+          description: item.description.replace(/<[^>]*>/g, ''),
+          link: item.link,
+          pubDate: new Date(item.pubDate),
+          image: item.thumbnail || item.enclosure?.link || 'https://via.placeholder.com/400x250?text=VnExpress'
+        }));
+
+        displayNews();
+        updateLastUpdateTime();
+        loading.style.display = 'none';
+
+      } catch (err) {
+        loading.style.display = 'none';
+        error.style.display = 'block';
+        error.textContent = '❌ Lỗi khi tải tin tức: ' + err.message;
+      }
+    }
+
+    function displayNews() {
+      const newsContainer = document.getElementById('newsContainer');
+      let filteredNews = filterNews(allNews);
+
+      if (filteredNews.length === 0) {
+        newsContainer.innerHTML = '<div class="error">Không có tin tức nào trong khoảng thời gian này.</div>';
+        return;
+      }
+
+      newsContainer.innerHTML = filteredNews.map(item => `
+        <div class="news-item" onclick="window.open('${item.link}', '_blank')">
+          <img src="${item.image}" alt="${item.title}" class="news-image"
+               onerror="this.src='https://via.placeholder.com/400x250?text=VnExpress'">
+          <div class="news-content">
+            <h2 class="news-title">${item.title}</h2>
+            <p class="news-description">${item.description}</p>
+            <div class="news-meta">
+              <span>📅 ${formatDate(item.pubDate)}</span>
+              <span>👁️ Xem thêm →</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterNews(news) {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+
+      switch(currentFilter) {
+        case 'today': return news.filter(item => item.pubDate >= today);
+        case 'yesterday': return news.filter(item => item.pubDate >= yesterday && item.pubDate < today);
+        case 'week': return news.filter(item => item.pubDate >= weekAgo);
+        default: return news;
+      }
+    }
+
+    function filterByDate(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      displayNews();
+    }
+
+    function formatDate(date) {
+      const now = new Date();
+      const diff = now - date;
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      if (hours < 1) return `${Math.floor(diff / 60000)} phút trước`;
+      else if (hours < 24) return `${hours} giờ trước`;
+      else if (days < 7) return `${days} ngày trước`;
+      else return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function updateLastUpdateTime() {
+      const lastUpdate = document.getElementById('lastUpdate');
+      const now = new Date();
+      lastUpdate.textContent = `Cập nhật lúc: ${now.toLocaleTimeString('vi-VN')} - ${now.toLocaleDateString('vi-VN')}`;
+    }
+
+    loadRSS();
+    setInterval(loadRSS, 300000);
+  </script>
+</body>
+</html>
